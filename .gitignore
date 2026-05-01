@@ -22,3 +22,6 @@ nohup.out
 
 # Test artifacts
 /tmp/
+.env
+.env.*
+.env.example
