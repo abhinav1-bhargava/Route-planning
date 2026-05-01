@@ -1,0 +1,27 @@
+# Runtime dependencies for the route planning agent demo.
+# Python 3.11 target (pinned in Makefile / docker-compose.yml).
+
+# Data models and validation
+pydantic>=2.0
+
+# SQLite async driver (core/state_store.py)
+aiosqlite
+
+# HTTP client for Google Maps + OSRM (integrations/google_maps.py)
+httpx
+
+# Telegram bot for consent workflow (agents/consent.py, integrations/telegram_bot.py)
+python-telegram-bot
+
+# Claude API client for Supervisor + Consent LLM agents
+anthropic
+
+# Web framework + ASGI server (api/main.py, api/websocket.py)
+fastapi
+uvicorn[standard]
+
+# Redis client — event bus (prod) and distance cache (core/distance_cache.py)
+redis
+
+# .env file loading for local dev
+python-dotenv

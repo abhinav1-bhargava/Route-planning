@@ -1,0 +1,16 @@
+# Route Planning Agent Demo — docker-compose
+#
+# Python 3.11 is pinned explicitly via the `python:3.11-slim` base image.
+# The pin matches $(PYTHON) in the Makefile. Full service wiring (Redis,
+# dashboard, volumes, env file, healthchecks) is filled in at build step 10.
+
+services:
+  api:
+    image: python:3.11-slim
+    working_dir: /app
+    volumes:
+      - ./:/app
+    command: ["python3.11", "--version"]
+
+  redis:
+    image: redis:7-alpine
