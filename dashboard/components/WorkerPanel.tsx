@@ -281,9 +281,10 @@ function SkillChips({ skills }: { skills: string[] }): JSX.Element {
   );
 }
 
-const API_URL_ENV =
-  (typeof process !== "undefined" && process.env?.NEXT_PUBLIC_API_URL) ||
-  "http://localhost:8000";
+// Default to the relative /api prefix so the dashboard works behind any
+// host (localhost, ngrok, App Platform). NEXT_PUBLIC_API_URL is a knob
+// for deployments that need an absolute URL.
+const API_URL_ENV = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 function WorkerCard({
   worker,

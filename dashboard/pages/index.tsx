@@ -31,10 +31,28 @@ const Map = dynamic<MapProps>(
 
 
 // ---- env-driven endpoints ---------------------------------------------
+//
+// Both endpoints default to relative URLs so the dashboard can be served
+// behind any host (localhost, ngrok, App Platform) without code changes:
+//   - HTTP: "/api/*" — Next.js's rewrite proxies to the FastAPI backend
+//   - WS:   "wss://<current-host>/ws/events" — same tunnel, single domain
+// NEXT_PUBLIC_API_URL / NEXT_PUBLIC_WS_URL can override either when a
+// deployment topology needs an absolute URL.
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-const WS_URL  = process.env.NEXT_PUBLIC_WS_URL  ?? "ws://localhost:8000/ws/events";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 const GOOGLE_MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY ?? "";
+
+function deriveWsUrl(): string {
+  // BUILD_TIME-injected env var wins.
+  if (process.env.NEXT_PUBLIC_WS_URL) return process.env.NEXT_PUBLIC_WS_URL;
+  // Browser fallback: same host as the dashboard, ws/wss based on protocol.
+  if (typeof window !== "undefined") {
+    const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+    return `${proto}//${window.location.host}/ws/events`;
+  }
+  // SSR fallback. Never actually opened — useWebSocket only fires on mount.
+  return "";
+}
 
 
 // ---- scenario metadata (buttons) --------------------------------------
@@ -118,8 +136,12 @@ export default function Home() {
   const [busyScenario, setBusyScenario] = useState<number | null>(null);
   const [selectedWorkerId, setSelectedWorkerId] = useState<string | null>(null);
   const [wfmOpen, setWfmOpen] = useState<boolean>(false);
+  // WS URL is derived in the browser from the current page host so the
+  // tunnel only needs one port forwarded. Lazy-init the state so the
+  // server-rendered "" never reaches the WebSocket constructor.
+  const [wsUrl] = useState<string>(deriveWsUrl);
 
-  const { events, latestEvent, status } = useWebSocket(WS_URL);
+  const { events, latestEvent, status } = useWebSocket(wsUrl);
 
   // Initial fetch of workers + tasks + routes.
   useEffect(() => {
@@ -188,9 +210,10 @@ export default function Home() {
   async function triggerScenario(n: number): Promise<void> {
     setBusyScenario(n);
     try {
-      const url = new URL(`${API_URL}/scenario/${n}`);
-      if (n === 6) url.searchParams.set("alpha", String(alpha));
-      await fetch(url.toString(), { method: "POST" });
+      // API_URL may be relative ("/api"), so build the path manually rather
+      // than using `new URL(...)` which requires an absolute base.
+      const qs = n === 6 ? `?alpha=${encodeURIComponent(String(alpha))}` : "";
+      await fetch(`${API_URL}/scenario/${n}${qs}`, { method: "POST" });
     } catch (e) {
       console.error(`scenario ${n} failed:`, e);
     } finally {
